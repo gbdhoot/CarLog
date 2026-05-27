@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="CarLog">
-<link rel="apple-touch-icon" href="Carlog.png">
+<link rel="apple-touch-icon" id="ati">
 <title>CarLog</title>
 <style>
   :root {
@@ -133,19 +133,22 @@
 </head>
 <body>
 <div id="gate" style="position:fixed;inset:0;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:2rem">
-  <div style="width:64px;height:64px;border-radius:18px;background:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem">
+  <div style="width:64px;height:64px;border-radius:18px;background:#378ADD;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem">
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   </div>
   <div style="font-size:22px;font-weight:600;color:var(--txt);margin-bottom:6px;letter-spacing:-0.4px">CarLog</div>
-  <div style="font-size:14px;color:var(--txt2);margin-bottom:2rem">Enter your password to continue</div>
+  <div id="gate-sub" style="font-size:14px;color:var(--txt2);margin-bottom:2rem;text-align:center">Enter your password to continue</div>
   <input type="password" id="pw-input" placeholder="Password" autocomplete="current-password"
     style="width:100%;max-width:280px;font-size:16px;padding:12px 16px;border-radius:12px;border:0.5px solid var(--bdr2);background:var(--bg);color:var(--txt);font-family:var(--font);outline:none;text-align:center;margin-bottom:10px"
     onkeydown="if(event.key==='Enter')checkPw()">
-  <button onclick="checkPw()"
-    style="width:100%;max-width:280px;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;font-family:var(--font);cursor:pointer">
+  <input type="password" id="pw-confirm" placeholder="Confirm password"
+    style="display:none;width:100%;max-width:280px;font-size:16px;padding:12px 16px;border-radius:12px;border:0.5px solid var(--bdr2);background:var(--bg);color:var(--txt);font-family:var(--font);outline:none;text-align:center;margin-bottom:10px"
+    onkeydown="if(event.key==='Enter')checkPw()">
+  <button id="gate-btn" onclick="checkPw()"
+    style="width:100%;max-width:280px;padding:13px;background:#378ADD;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;font-family:var(--font);cursor:pointer">
     Unlock
   </button>
-  <div id="pw-err" style="font-size:13px;color:var(--red);margin-top:12px;opacity:0;transition:opacity .2s">Incorrect password</div>
+  <div id="pw-err" style="font-size:13px;color:#E24B4A;margin-top:12px;min-height:18px;text-align:center"></div>
 </div>
 
 <div class="app" id="main-app" style="display:none">
@@ -227,6 +230,14 @@
     </div>
     <div class="btn-row">
       <button class="obtn dbtn-red" onclick="if(confirm('Delete ALL entries? Cannot be undone.')){localStorage.removeItem('cl_e');entries=[];renderDash();go('dash');toast('All data cleared')}">Clear all data</button>
+    </div>
+    <div class="form-card" style="margin-top:6px">
+      <p class="bct" style="margin-bottom:12px">Change password</p>
+      <div style="margin-bottom:10px"><div class="flabel">Current password</div><input type="password" id="cp-cur" placeholder="Current password" style="font-size:15px"></div>
+      <div style="margin-bottom:10px"><div class="flabel">New password</div><input type="password" id="cp-new" placeholder="New password (min 4 chars)" style="font-size:15px"></div>
+      <div style="margin-bottom:10px"><div class="flabel">Confirm new password</div><input type="password" id="cp-con" placeholder="Confirm new password" style="font-size:15px"></div>
+      <button class="sbtn" onclick="changePw()" style="background:var(--blue)">Update password</button>
+      <div id="cp-msg" style="font-size:13px;margin-top:10px;min-height:18px;text-align:center"></div>
     </div>
   </div>
 </div>
@@ -652,33 +663,116 @@ function impJSON(ev) {
   r.readAsText(f);
 }
 
-const PW_HASH = 'e4ef3369186b1c929a52feb34f8cd40f9396e72d3af86bc86a3076209b2ce05d';
-
+// ── Password system ──────────────────────────────────────────────────────────
 async function hashStr(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-async function checkPw() {
-  const val = document.getElementById('pw-input').value;
-  const h = await hashStr(val);
-  if (h === PW_HASH) {
-    sessionStorage.setItem('cl_auth','1');
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    load(); toggleFuelFields(); renderDash();
-  } else {
-    const err = document.getElementById('pw-err');
-    err.style.opacity = '1';
-    setTimeout(()=>err.style.opacity='0', 2000);
-    document.getElementById('pw-input').value = '';
-  }
+function showGateErr(msg) {
+  const e = document.getElementById('pw-err');
+  e.textContent = msg;
+  setTimeout(()=>{ e.textContent=''; }, 2500);
 }
 
-if (sessionStorage.getItem('cl_auth') === '1') {
+function unlockApp() {
+  sessionStorage.setItem('cl_auth','1');
   document.getElementById('gate').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   load(); toggleFuelFields(); renderDash();
+}
+
+async function checkPw() {
+  const stored = localStorage.getItem('cl_pw');
+  const val = document.getElementById('pw-input').value.trim();
+  if (!val) { showGateErr('Enter a password'); return; }
+
+  if (!stored) {
+    // First launch — set password
+    const conf = document.getElementById('pw-confirm').value.trim();
+    if (!conf) { showGateErr('Please confirm your password'); return; }
+    if (val !== conf) { showGateErr('Passwords do not match'); document.getElementById('pw-confirm').value=''; return; }
+    if (val.length < 4) { showGateErr('Minimum 4 characters'); return; }
+    localStorage.setItem('cl_pw', await hashStr(val));
+    unlockApp();
+  } else {
+    const h = await hashStr(val);
+    if (h === stored) {
+      unlockApp();
+    } else {
+      showGateErr('Incorrect password');
+      document.getElementById('pw-input').value = '';
+    }
+  }
+}
+
+async function changePw() {
+  const cur  = document.getElementById('cp-cur').value.trim();
+  const nw   = document.getElementById('cp-new').value.trim();
+  const conf = document.getElementById('cp-con').value.trim();
+  const msg  = document.getElementById('cp-msg');
+  const stored = localStorage.getItem('cl_pw');
+
+  function setMsg(text, ok) {
+    msg.textContent = text;
+    msg.style.color = ok ? 'var(--green)' : 'var(--red)';
+    setTimeout(()=>{ msg.textContent=''; }, 3000);
+  }
+
+  if (!cur || !nw || !conf) { setMsg('Fill in all three fields', false); return; }
+  const curH = await hashStr(cur);
+  if (curH !== stored) { setMsg('Current password is incorrect', false); document.getElementById('cp-cur').value=''; return; }
+  if (nw !== conf) { setMsg('New passwords do not match', false); document.getElementById('cp-con').value=''; return; }
+  if (nw.length < 4) { setMsg('Minimum 4 characters', false); return; }
+  localStorage.setItem('cl_pw', await hashStr(nw));
+  ['cp-cur','cp-new','cp-con'].forEach(id=>document.getElementById(id).value='');
+  setMsg('Password updated', true);
+}
+
+// ── Home screen icon — generated inline, no external file needed ─────────────
+(function generateIcon() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 180;
+  const ctx = c.getContext('2d');
+  // rounded rect background
+  const r = 40;
+  ctx.fillStyle = '#378ADD';
+  ctx.beginPath();
+  ctx.moveTo(r,0); ctx.lineTo(180-r,0); ctx.quadraticCurveTo(180,0,180,r);
+  ctx.lineTo(180,180-r); ctx.quadraticCurveTo(180,180,180-r,180);
+  ctx.lineTo(r,180); ctx.quadraticCurveTo(0,180,0,180-r);
+  ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0);
+  ctx.closePath(); ctx.fill();
+  // speedometer arc
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 12; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(90, 105, 52, Math.PI, 0, false); ctx.stroke();
+  ctx.strokeStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(90, 105, 52, Math.PI, Math.PI*0.35, false); ctx.stroke();
+  // needle
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(90,105); ctx.lineTo(48, 68); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(90,105,7,0,Math.PI*2); ctx.fill();
+  // CL text
+  ctx.fillStyle='#fff'; ctx.font='bold 28px -apple-system,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('CL', 90, 48);
+  // Set as apple touch icon
+  const link = document.getElementById('ati');
+  if (link) link.href = c.toDataURL('image/png');
+})();
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+if (sessionStorage.getItem('cl_auth') === '1') {
+  unlockApp();
+} else {
+  const stored = localStorage.getItem('cl_pw');
+  if (!stored) {
+    document.getElementById('gate-sub').textContent = 'First launch — set your password';
+    document.getElementById('pw-input').placeholder = 'Choose a password';
+    document.getElementById('pw-confirm').style.display = 'block';
+    document.getElementById('gate-btn').textContent = 'Set password';
+  }
 }
 </script>
 </div>
