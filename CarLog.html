@@ -542,11 +542,16 @@ function toggleFuelFields() {
 
 /* ---- CALC RATE ---- */
 function calcRate(returnVal) {
-  const amt = parseFloat(document.getElementById('e-amt').value);
-  const qty = parseFloat(document.getElementById('e-qty').value);
   const cat = document.getElementById('e-cat').value;
   const rateEl = document.getElementById('e-rate');
-  if (cat === 'Fuel' && amt > 0 && qty > 0) {
+  if (cat !== 'Fuel') {
+    rateEl.value = '';
+    if (returnVal) return '';
+    return;
+  }
+  const amt = parseFloat(document.getElementById('e-amt').value);
+  const qty = parseFloat(document.getElementById('e-qty').value);
+  if (amt > 0 && qty > 0) {
     const r = (amt / qty).toFixed(2);
     rateEl.value = '₹' + r + ' /L';
     if (returnVal) return r;
