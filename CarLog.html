@@ -65,25 +65,23 @@
   .gcard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; }
   .gcard canvas { display: block; }
   .g-val { font-size: 16px; font-weight: 600; color: var(--txt); margin-top: 4px; text-align: center; letter-spacing: -0.5px; }
-  .g-unit { font-size: 10px; color: var(--txt2); text-align: center; margin-top: 1px; }
-  .g-lbl { font-size: 10px; color: var(--txt3); text-align: center; margin-top: 4px; font-weight: 500; }
+  .g-unit { font-size: 10px; color: var(--txt2); text-align: center; margin-top: 1px; font-weight:500; }
+  .g-lbl { font-size: 10px; color: var(--txt2); text-align: center; margin-top: 4px; font-weight: 500; }
 
   /* LAST FILL STRIP */
-  .fillstrip { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; overflow: hidden; }
-  .fillstrip .fi { padding: 12px 8px; text-align: center; border-right: 0.5px solid var(--bdr); }
-  .fillstrip .fi:last-child { border-right: none; }
-  .fi-val { font-size: 15px; font-weight: 600; color: var(--txt); }
-  .fi-lbl { font-size: 10px; color: var(--txt3); margin-top: 3px; }
+  /* fillstrip removed */
 
   /* STAT ROW */
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
   .scard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 12px; }
   .s-val { font-size: 20px; font-weight: 600; color: var(--txt); letter-spacing: -0.5px; }
-  .s-lbl { font-size: 11px; color: var(--txt3); margin-top: 3px; }
+  .s-lbl { font-size: 11px; color: var(--txt2); margin-top: 3px; }
 
   /* BAR CHARTS */
   .barchart { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 14px; margin-bottom: 14px; }
   .bct { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 12px; }
+  .blbl { font-size: 11px; color: var(--txt2); width: 80px; flex-shrink: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bamt { font-size: 11px; color: var(--txt2); width: 60px; text-align: right; flex-shrink: 0; }
   .brow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .blbl { font-size: 11px; color: var(--txt2); width: 80px; flex-shrink: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .btrack { flex: 1; height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
@@ -161,7 +159,7 @@
   <div class="pg on" id="pg-dash">
     <p class="sec" style="margin-top:4px">Performance</p>
     <div class="gauges" id="gauges"></div>
-    <div class="fillstrip" id="fillstrip"></div>
+    <div id="trend-bars"></div>
     <p class="sec">Summary</p>
     <div class="stats" id="stats"></div>
     <div class="barchart"><p class="bct">Spend by category</p><div id="catbars"></div></div>
@@ -496,29 +494,54 @@ function renderDash() {
     drawGauge('g3', cpmKm/maxCpm, '#BA7517', maxCpm,  niceTicks(maxCpm,  4));
   }, 50);
 
-  // Last fill strip — last entry by DATE for fuel category
-  let lfQty='—', lfEff='—', lfKm='—';
-  if (lastFuel) {
-    lfQty = lastFuel.qty ? parseFloat(lastFuel.qty).toFixed(1)+' L' : '—';
-    if (lastFuel.odo && prevFuel && prevFuel.odo) {
-      const lk = parseFloat(lastFuel.odo) - parseFloat(prevFuel.odo);
-      const ll = lastFuel.qty ? parseFloat(lastFuel.qty) : 0;
-      if (lk > 0) lfKm = lk+' km';
-      if (lk > 0 && ll > 0) lfEff = (lk/ll).toFixed(1)+' km/L';
+  // ── Trend mini-bars: last 6 fuel fills for km/L, km/Rs, Rs/km ───────────────
+  // Build per-fill stats from closed intervals (same logic as gauges)
+  const fillIntervals = [];
+  for (let i = 0; i < fills.length - 1; i++) {
+    const kmDriven = fills[i+1].odo - fills[i].odo;
+    const litres = fills[i].qty;
+    const spend = fills[i].amt;
+    if (kmDriven > 0 && litres > 0 && spend > 0) {
+      fillIntervals.push({
+        label: fills[i+1].date.slice(5), // MM-DD
+        kmL: parseFloat((kmDriven/litres).toFixed(1)),
+        kmRs: parseFloat((kmDriven/spend).toFixed(3)),
+        rsKm: parseFloat((spend/kmDriven).toFixed(1))
+      });
     }
   }
-  document.getElementById('fillstrip').innerHTML = `
-    <div class="fi"><div class="fi-val">${lfQty}</div><div class="fi-lbl">Last fill qty</div></div>
-    <div class="fi"><div class="fi-val">${lfEff}</div><div class="fi-lbl">Fill efficiency</div></div>
-    <div class="fi"><div class="fi-val">${lfKm}</div><div class="fi-lbl">km since prev fill</div></div>
-  `;
+  const last6 = fillIntervals.slice(-6);
 
-  // Stats
-  const thisM = new Date().toISOString().slice(0,7);
-  const mSpend = entries.filter(e => e.date.startsWith(thisM)).reduce((s,e) => s+e.amt, 0);
+  function miniBarChart(data, key, color, unit) {
+    if (!data.length) return '<p style="font-size:11px;color:var(--txt3);text-align:center;padding:8px 0">Need 2+ fuel fills with odometer</p>';
+    const max = Math.max(...data.map(d => d[key]), 0.001);
+    return data.map(d => `
+      <div class="brow" style="margin-bottom:5px">
+        <span class="blbl" style="width:44px;font-size:10px">${d.label}</span>
+        <div class="btrack"><div class="bfill" style="width:${Math.round(d[key]/max*100)}%;background:${color}"></div></div>
+        <span class="bamt" style="width:52px;font-size:10px">${d[key]} ${unit}</span>
+      </div>`).join('');
+  }
+
+  document.getElementById('trend-bars').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div class="barchart" style="padding:10px">
+        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--green)">km/L trend</p>
+        ${miniBarChart(last6,'kmL','#1D9E75','kml')}
+      </div>
+      <div class="barchart" style="padding:10px">
+        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--blue)">km/₹ trend</p>
+        ${miniBarChart(last6,'kmRs','#378ADD','')}
+      </div>
+      <div class="barchart" style="padding:10px">
+        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--amber)">₹/km trend</p>
+        ${miniBarChart(last6,'rsKm','#BA7517','₹')}
+      </div>
+    </div>`;
+
+  // Stats — 3 cards, no "this month"
   document.getElementById('stats').innerHTML = `
     <div class="scard"><div class="s-val">₹${total.toLocaleString('en-IN')}</div><div class="s-lbl">Total spend</div></div>
-    <div class="scard"><div class="s-val">₹${mSpend.toLocaleString('en-IN')}</div><div class="s-lbl">This month</div></div>
     <div class="scard"><div class="s-val">${totalKmAll > 0 ? totalKmAll.toLocaleString('en-IN')+' km' : '—'}</div><div class="s-lbl">Total km logged</div></div>
     <div class="scard"><div class="s-val">${cnt}</div><div class="s-lbl">Log entries</div></div>
   `;
