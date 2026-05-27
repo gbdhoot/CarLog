@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CarLog">
+<link rel="apple-touch-icon" href="Carlog.png">
+<title>CarLog</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f7;
+    --bg3: #ebebed;
+    --txt: #1c1c1e;
+    --txt2: #6e6e73;
+    --txt3: #aeaeb2;
+    --bdr: rgba(0,0,0,0.1);
+    --bdr2: rgba(0,0,0,0.18);
+    --blue: #378ADD;
+    --green: #1D9E75;
+    --amber: #BA7517;
+    --red: #E24B4A;
+    --purple: #7F77DD;
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --txt: #f2f2f7;
+      --txt2: #aeaeb2;
+      --txt3: #636366;
+      --bdr: rgba(255,255,255,0.1);
+      --bdr2: rgba(255,255,255,0.18);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--font); background: var(--bg2); color: var(--txt); font-size: 15px; min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; background: var(--bg2); min-height: 100vh; padding-bottom: 80px; }
+
+  /* NAV BAR */
+  .navbar { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 0.5px solid var(--bdr); padding: 12px 16px 10px; }
+  .navbar h1 { font-size: 17px; font-weight: 600; color: var(--txt); letter-spacing: -0.3px; }
+  .navbar .sub { font-size: 12px; color: var(--txt2); margin-top: 1px; }
+
+  /* BOTTOM TAB BAR */
+  .tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--bg); border-top: 0.5px solid var(--bdr); display: flex; padding: 6px 0 20px; z-index: 100; }
+  .tabbar button { flex: 1; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; color: var(--txt3); font-size: 10px; font-family: var(--font); font-weight: 500; transition: color .15s; }
+  .tabbar button.on { color: var(--blue); }
+  .tabbar button svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* PAGES */
+  .pg { display: none; padding: 16px; }
+  .pg.on { display: block; }
+
+  /* SECTION TITLE */
+  .sec { font-size: 13px; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 10px; }
+
+  /* GAUGE CARDS */
+  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .gcard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; }
+  .gcard canvas { display: block; }
+  .g-val { font-size: 16px; font-weight: 600; color: var(--txt); margin-top: 4px; text-align: center; letter-spacing: -0.5px; }
+  .g-unit { font-size: 10px; color: var(--txt2); text-align: center; margin-top: 1px; }
+  .g-lbl { font-size: 10px; color: var(--txt3); text-align: center; margin-top: 4px; font-weight: 500; }
+
+  /* LAST FILL STRIP */
+  .fillstrip { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; overflow: hidden; }
+  .fillstrip .fi { padding: 12px 8px; text-align: center; border-right: 0.5px solid var(--bdr); }
+  .fillstrip .fi:last-child { border-right: none; }
+  .fi-val { font-size: 15px; font-weight: 600; color: var(--txt); }
+  .fi-lbl { font-size: 10px; color: var(--txt3); margin-top: 3px; }
+
+  /* STAT ROW */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .scard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 12px; }
+  .s-val { font-size: 20px; font-weight: 600; color: var(--txt); letter-spacing: -0.5px; }
+  .s-lbl { font-size: 11px; color: var(--txt3); margin-top: 3px; }
+
+  /* BAR CHARTS */
+  .barchart { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 14px; margin-bottom: 14px; }
+  .bct { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 12px; }
+  .brow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .blbl { font-size: 11px; color: var(--txt2); width: 80px; flex-shrink: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btrack { flex: 1; height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+  .bfill { height: 100%; border-radius: 99px; transition: width .4s; }
+  .bamt { font-size: 11px; color: var(--txt2); width: 60px; text-align: right; flex-shrink: 0; }
+  .empty { text-align: center; padding: 2rem; color: var(--txt3); font-size: 14px; }
+
+  /* FORM */
+  .form-card { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 16px; margin-bottom: 14px; }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .frow.full { grid-template-columns: 1fr; }
+  .flabel { font-size: 12px; font-weight: 500; color: var(--txt2); margin-bottom: 5px; }
+  input, select, textarea { width: 100%; font-family: var(--font); font-size: 15px; padding: 10px 12px; background: var(--bg2); border: 0.5px solid var(--bdr2); border-radius: 10px; color: var(--txt); outline: none; -webkit-appearance: none; appearance: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); background: var(--bg); }
+  textarea { resize: vertical; min-height: 72px; }
+  .sbtn { width: 100%; padding: 14px; background: var(--blue); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; font-family: var(--font); cursor: pointer; margin-top: 4px; letter-spacing: -0.2px; }
+  .sbtn:active { opacity: 0.85; }
+
+  /* HISTORY */
+  .hist-item { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .hi-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .hi-main { flex: 1; min-width: 0; }
+  .hi-cat { font-size: 13px; font-weight: 600; color: var(--txt); }
+  .hi-sub { font-size: 11px; color: var(--txt3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hi-amt { font-size: 15px; font-weight: 600; color: var(--txt); white-space: nowrap; }
+  .hi-date { font-size: 11px; color: var(--txt3); text-align: right; margin-top: 2px; }
+  .delbtn { background: none; border: none; cursor: pointer; color: var(--txt3); padding: 6px; border-radius: 8px; font-size: 18px; line-height: 1; }
+  .delbtn:active { background: rgba(226,75,74,0.12); color: var(--red); }
+
+  /* DATA PAGE */
+  .info-box { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 14px; margin-bottom: 14px; font-size: 13px; color: var(--txt2); line-height: 1.65; }
+  .info-box strong { color: var(--txt); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .obtn { padding: 10px 16px; background: var(--bg); border: 0.5px solid var(--bdr2); border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--txt); font-family: var(--font); cursor: pointer; }
+  .obtn:active { background: var(--bg2); }
+  .dbtn-red { color: var(--red); border-color: rgba(226,75,74,0.4); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(28,28,30,0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 500; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 999; white-space: nowrap; font-family: var(--font); }
+  .toast.on { opacity: 1; }
+
+  /* FILTER */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .fpill { padding: 6px 14px; border-radius: 99px; border: 0.5px solid var(--bdr2); background: var(--bg); font-size: 13px; font-weight: 500; color: var(--txt2); cursor: pointer; white-space: nowrap; font-family: var(--font); }
+  .fpill.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="navbar">
+    <div id="nav-title" style="font-size:17px;font-weight:600;letter-spacing:-0.3px">CarLog</div>
+    <div id="nav-sub" class="sub"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="pg on" id="pg-dash">
+    <p class="sec" style="margin-top:4px">Performance</p>
+    <div class="gauges" id="gauges"></div>
+    <div class="fillstrip" id="fillstrip"></div>
+    <p class="sec">Summary</p>
+    <div class="stats" id="stats"></div>
+    <div class="barchart"><p class="bct">Spend by category</p><div id="catbars"></div></div>
+    <div class="barchart"><p class="bct">Monthly trend</p><div id="monbars"></div></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="pg" id="pg-log">
+    <div class="form-card">
+      <div class="frow">
+        <div><div class="flabel">Date</div><input type="date" id="e-date"></div>
+        <div><div class="flabel">Category</div>
+          <select id="e-cat" onchange="toggleFuelFields();calcRate()">
+            <option value="Fuel">Fuel</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Toll">Toll</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Parking">Parking</option>
+            <option value="Service">Service center</option>
+            <option value="Tyre">Tyre / wheel</option>
+            <option value="Fine">Traffic fine</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow">
+        <div><div class="flabel">Amount (₹)</div><input type="number" id="e-amt" placeholder="0" inputmode="decimal" oninput="calcRate()"></div>
+        <div><div class="flabel">Odometer (km)</div><input type="number" id="e-odo" placeholder="e.g. 12450" inputmode="numeric"></div>
+      </div>
+      <div class="frow" id="fuel-fields" style="display:none">
+        <div><div class="flabel">Fuel qty (L)</div><input type="number" id="e-qty" placeholder="e.g. 40" step="0.1" inputmode="decimal" oninput="calcRate()"></div>
+        <div><div class="flabel">Rate (₹/L) — auto</div><input type="text" id="e-rate" placeholder="auto" readonly style="background:var(--bg3);color:var(--txt2);cursor:default"></div>
+      </div>
+      <div class="frow full"><div><div class="flabel">Vendor / location</div><input type="text" id="e-vendor" placeholder="e.g. HP Petrol Pump, Thane" autocomplete="off"></div></div>
+      <div class="frow full"><div><div class="flabel">Notes</div><textarea id="e-notes" placeholder="e.g. Full tank, 10k service done..."></textarea></div></div>
+      <button class="sbtn" id="log-save-btn" onclick="addEntry()">Save entry</button>
+      <button class="sbtn" id="log-cancel-btn" onclick="cancelEdit()" style="display:none;margin-top:8px;background:var(--bg3);color:var(--txt2)">Cancel edit</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="pg" id="pg-hist">
+    <div class="filter-row" id="filter-row"></div>
+    <div id="hist-list"></div>
+  </div>
+
+  <!-- DATA -->
+  <div class="pg" id="pg-data">
+    <div class="form-card">
+      <p class="bct" style="margin-bottom:12px">Car info</p>
+      <div class="frow">
+        <div><div class="flabel">Car name / model</div><input type="text" id="d-car" placeholder="e.g. Tata Nexon EV 2024" autocomplete="off" onchange="saveCI()"></div>
+        <div><div class="flabel">Registration</div><input type="text" id="d-reg" placeholder="e.g. MH04AB1234" autocomplete="off" onchange="saveCI()"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="obtn" onclick="expCSV()">Export CSV</button>
+      <button class="obtn" onclick="expJSON()">Backup JSON</button>
+      <button class="obtn" onclick="document.getElementById('imp').click()">Restore JSON</button>
+    </div>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="impJSON(event)">
+    <div class="info-box">
+      <strong>Data stays on this device.</strong> Stored in localStorage — nothing sent anywhere. Export a JSON backup monthly and save to iCloud Files.<br><br>
+      Total entries: <strong id="ecnt">0</strong>
+    </div>
+    <div class="btn-row">
+      <button class="obtn dbtn-red" onclick="if(confirm('Delete ALL entries? Cannot be undone.')){localStorage.removeItem('cl_e');entries=[];renderDash();go('dash');toast('All data cleared')}">Clear all data</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tabbar">
+  <button class="on" onclick="go('dash',0)" id="tb0">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12L8.5 8.5M12 12l3-1"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+    Dashboard
+  </button>
+  <button onclick="go('log',1)" id="tb1">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+    Log entry
+  </button>
+  <button onclick="go('hist',2)" id="tb2">
+    <svg viewBox="0 0 24 24"><path d="M12 8v4l3 3M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3z"/></svg>
+    History
+  </button>
+  <button onclick="go('data',3)" id="tb3">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M19.07 19.07A10 10 0 0 0 4.93 4.93"/></svg>
+    Data
+  </button>
+</div>
+
+<div class="toast" id="tst"></div>
+
+<script>
+const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#888780',Service:'#639922',Tyre:'#D85A30',Fine:'#E24B4A',Other:'#888780'};
+let entries = [], curTab = 0, histFilter = '', editingId = null;
+
+function load() {
+  try { entries = JSON.parse(localStorage.getItem('cl_e') || '[]'); } catch(e) { entries = []; }
+  const ci = JSON.parse(localStorage.getItem('cl_ci') || '{}');
+  if (ci.car) { document.getElementById('d-car').value = ci.car; document.getElementById('nav-title').textContent = ci.car || 'CarLog'; }
+  if (ci.reg) { document.getElementById('d-reg').value = ci.reg; }
+  document.getElementById('nav-sub').textContent = ci.reg || '';
+  document.getElementById('e-date').value = new Date().toISOString().slice(0,10);
+}
+
+function save() { localStorage.setItem('cl_e', JSON.stringify(entries)); }
+function saveCI() {
+  const car = document.getElementById('d-car').value;
+  const reg = document.getElementById('d-reg').value;
+  localStorage.setItem('cl_ci', JSON.stringify({car, reg}));
+  document.getElementById('nav-title').textContent = car || 'CarLog';
+  document.getElementById('nav-sub').textContent = reg || '';
+}
+
+function toast(m) { const t = document.getElementById('tst'); t.textContent = m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'), 2200); }
+
+function go(pg, idx) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tabbar button').forEach(b => b.classList.remove('on'));
+  document.getElementById('pg-'+pg).classList.add('on');
+  document.getElementById('tb'+idx).classList.add('on');
+  curTab = idx;
+  if (pg === 'dash') renderDash();
+  if (pg === 'hist') renderHist();
+  if (pg === 'data') document.getElementById('ecnt').textContent = entries.length;
+}
+
+/* ---- GAUGE DRAWING ---- */
+function drawGauge(canvasId, pct, color, max, ticks) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = 100, H = 64;
+  el.width = W * dpr; el.height = H * dpr;
+  el.style.width = W+'px'; el.style.height = H+'px';
+  const ctx = el.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Centre at bottom-middle. Arc sweeps from left (π) to right (0) above cy.
+  // Canvas Y is downward, so "up" means cy - r*sin(a) for a in [0,π].
+  // We parameterise by t in [0,1]: left=0, right=1.
+  // angle(t) = π*(1-t)  →  t=0 gives π (left), t=1 gives 0 (right).
+  // px(t,rad) = cx + rad*cos(angle(t))        (cos π = -1, cos 0 = +1 ✓)
+  // py(t,rad) = cy - rad*sin(angle(t))        (sin [0,π] > 0, minus → upward ✓)
+  const cx = W/2, cy = H - 6, r = 38;
+  const angle = t => Math.PI * (1 - t);
+  const px = (t, rad) => cx + rad * Math.cos(angle(t));
+  const py = (t, rad) => cy - rad * Math.sin(angle(t));
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const trackCol = isDark ? '#3a3a3c' : '#e5e5ea';
+  const textCol  = isDark ? '#aeaeb2' : '#8e8e93';
+  const needleCol = isDark ? '#f2f2f7' : '#1c1c1e';
+  const p = Math.min(Math.max(pct, 0), 1);
+
+  // background track: t from 0 to 1 = left to right
+  // arc from angle(0)=π to angle(1)=0, counterclockwise = anticlockwise=true in canvas
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0, false);
+  ctx.strokeStyle = trackCol;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // colored fill: from left (t=0) to p
+  if (p > 0.005) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI, angle(p), false);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // tick marks and labels
+  ticks.forEach(t => {
+    const tv = t.v / max;
+    const isMajor = !!t.label;
+    const rInner = r - (isMajor ? 9 : 5);
+    const rOuter = r + 2;
+    ctx.beginPath();
+    ctx.moveTo(px(tv, rInner), py(tv, rInner));
+    ctx.lineTo(px(tv, rOuter), py(tv, rOuter));
+    ctx.strokeStyle = textCol;
+    ctx.lineWidth = isMajor ? 1.5 : 0.8;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+    if (t.label) {
+      ctx.fillStyle = textCol;
+      ctx.font = '7.5px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t.label, px(tv, r - 19), py(tv, r - 19));
+    }
+  });
+
+  // needle from centre to tip
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(px(p, r - 9), py(p, r - 9));
+  ctx.strokeStyle = needleCol;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // hub dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = needleCol;
+  ctx.fill();
+}
+
+/* ---- RENDER DASHBOARD ---- */
+function renderDash() {
+  const total = entries.reduce((s,e) => s+e.amt, 0);
+  const cnt = entries.length;
+  const fuelE = entries.filter(e => e.cat === 'Fuel');
+  const totalFuelSpend = fuelE.reduce((s,e) => s+e.amt, 0);
+
+  // sort by date descending for "last fuel fill" = most recent fuel entry by date
+  const fuelByDate = [...fuelE].sort((a,b) => b.date.localeCompare(a.date));
+  const lastFuel = fuelByDate[0];
+  const prevFuel = fuelByDate[1];
+
+  // Fuel fills sorted oldest→newest by odometer (only those with both odo and qty)
+  const fills = fuelE
+    .filter(e => e.qty && e.odo)
+    .map(e => ({...e, odo:parseFloat(e.odo), qty:parseFloat(e.qty)}))
+    .sort((a,b) => a.odo - b.odo);
+
+  // Correct fill-to-fill method:
+  // Each interval = (odo[n+1] - odo[n]) km driven on qty[n] litres.
+  // Last fill qty is excluded — we don't know how far it will take us yet.
+  // totalKm = odo of last fill minus odo of first fill (closed intervals only).
+  let totalKm = 0, totalLitresUsed = 0, totalFuelSpendClosed = 0;
+  if (fills.length >= 2) {
+    totalKm = fills[fills.length-1].odo - fills[0].odo;
+    // litres used = sum of all fills except the last (each fill's qty drove to the next odo)
+    for (let i = 0; i < fills.length - 1; i++) {
+      totalLitresUsed += fills[i].qty;
+      totalFuelSpendClosed += fills[i].amt;
+    }
+  }
+
+  // Also include non-fuel odo entries to extend totalKm if they go beyond last fill odo
+  const allOdoE = entries.filter(e => e.odo).map(e => parseFloat(e.odo));
+  const globalMaxOdo = allOdoE.length ? Math.max(...allOdoE) : 0;
+  const globalMinOdo = allOdoE.length ? Math.min(...allOdoE) : 0;
+  const totalKmAll = allOdoE.length >= 2 ? globalMaxOdo - globalMinOdo : 0;
+
+  const kmL = totalKm > 0 && totalLitresUsed > 0
+    ? parseFloat((totalKm / totalLitresUsed).toFixed(1)) : 0;
+
+  // km/₹ and ₹/km use only closed fill intervals for fairness
+  const kmRs = totalKm > 0 && totalFuelSpendClosed > 0
+    ? parseFloat((totalKm / totalFuelSpendClosed).toFixed(2)) : 0;
+  const cpmKm = totalKm > 0 && totalFuelSpendClosed > 0
+    ? parseFloat((totalFuelSpendClosed / totalKm).toFixed(1)) : 0;
+
+  // Dynamic scale: find a round max so the reading lands at 65-70% of the dial
+  function niceMax(val) {
+    if (!val || val <= 0) return null;
+    // target: val / max = 0.67, so max = val / 0.67
+    const raw = val / 0.67;
+    // round up to a nice number: find magnitude, ceil to 1 or 2 or 5 multiples
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const steps = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    for (const s of steps) {
+      const candidate = Math.ceil(raw / (mag * s)) * mag * s;
+      if (candidate >= raw) return candidate;
+    }
+    return Math.ceil(raw / mag) * mag;
+  }
+
+  function niceTicks(max, count) {
+    const step = max / count;
+    const ticks = [];
+    for (let i = 0; i <= count; i++) {
+      const v = parseFloat((step * i).toPrecision(4));
+      ticks.push({ v, label: v % 1 === 0 ? String(v) : v.toFixed(2).replace(/\.?0+$/, '') });
+    }
+    return ticks;
+  }
+
+  const maxKmL  = niceMax(kmL)  || 20;
+  const maxKmRs = niceMax(kmRs) || 0.20;
+  const maxCpm  = niceMax(cpmKm)|| 10;
+
+  document.getElementById('gauges').innerHTML = `
+    <div class="gcard">
+      <canvas id="g1"></canvas>
+      <div class="g-val">${kmL || '—'}</div>
+      <div class="g-unit">km / L</div>
+      <div class="g-lbl">Efficiency</div>
+    </div>
+    <div class="gcard">
+      <canvas id="g2"></canvas>
+      <div class="g-val">${kmRs || '—'}</div>
+      <div class="g-unit">km / ₹</div>
+      <div class="g-lbl">Value</div>
+    </div>
+    <div class="gcard">
+      <canvas id="g3"></canvas>
+      <div class="g-val">${cpmKm || '—'}</div>
+      <div class="g-unit">₹ / km</div>
+      <div class="g-lbl">Fuel cost/km</div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    drawGauge('g1', kmL/maxKmL,   '#1D9E75', maxKmL,  niceTicks(maxKmL,  4));
+    drawGauge('g2', kmRs/maxKmRs, '#378ADD', maxKmRs, niceTicks(maxKmRs, 4));
+    drawGauge('g3', cpmKm/maxCpm, '#BA7517', maxCpm,  niceTicks(maxCpm,  4));
+  }, 50);
+
+  // Last fill strip — last entry by DATE for fuel category
+  let lfQty='—', lfEff='—', lfKm='—';
+  if (lastFuel) {
+    lfQty = lastFuel.qty ? parseFloat(lastFuel.qty).toFixed(1)+' L' : '—';
+    if (lastFuel.odo && prevFuel && prevFuel.odo) {
+      const lk = parseFloat(lastFuel.odo) - parseFloat(prevFuel.odo);
+      const ll = lastFuel.qty ? parseFloat(lastFuel.qty) : 0;
+      if (lk > 0) lfKm = lk+' km';
+      if (lk > 0 && ll > 0) lfEff = (lk/ll).toFixed(1)+' km/L';
+    }
+  }
+  document.getElementById('fillstrip').innerHTML = `
+    <div class="fi"><div class="fi-val">${lfQty}</div><div class="fi-lbl">Last fill qty</div></div>
+    <div class="fi"><div class="fi-val">${lfEff}</div><div class="fi-lbl">Fill efficiency</div></div>
+    <div class="fi"><div class="fi-val">${lfKm}</div><div class="fi-lbl">km since prev fill</div></div>
+  `;
+
+  // Stats
+  const thisM = new Date().toISOString().slice(0,7);
+  const mSpend = entries.filter(e => e.date.startsWith(thisM)).reduce((s,e) => s+e.amt, 0);
+  document.getElementById('stats').innerHTML = `
+    <div class="scard"><div class="s-val">₹${total.toLocaleString('en-IN')}</div><div class="s-lbl">Total spend</div></div>
+    <div class="scard"><div class="s-val">₹${mSpend.toLocaleString('en-IN')}</div><div class="s-lbl">This month</div></div>
+    <div class="scard"><div class="s-val">${totalKmAll > 0 ? totalKmAll.toLocaleString('en-IN')+' km' : '—'}</div><div class="s-lbl">Total km logged</div></div>
+    <div class="scard"><div class="s-val">${cnt}</div><div class="s-lbl">Log entries</div></div>
+  `;
+
+  // Category bars
+  const bycat = {};
+  entries.forEach(e => { bycat[e.cat] = (bycat[e.cat]||0) + e.amt; });
+  const cats = Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
+  const maxC = Math.max(...cats.map(c=>c[1]), 1);
+  document.getElementById('catbars').innerHTML = cats.length
+    ? cats.map(([c,a]) => `<div class="brow"><span class="blbl">${c}</span><div class="btrack"><div class="bfill" style="width:${Math.round(a/maxC*100)}%;background:${CATS[c]||'#888'}"></div></div><span class="bamt">₹${a.toLocaleString('en-IN')}</span></div>`).join('')
+    : '<p class="empty">No entries yet</p>';
+
+  // Monthly bars
+  const bymon = {};
+  entries.forEach(e => { const m=e.date.slice(0,7); bymon[m]=(bymon[m]||0)+e.amt; });
+  const mons = Object.entries(bymon).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6);
+  const maxM = Math.max(...mons.map(m=>m[1]), 1);
+  document.getElementById('monbars').innerHTML = mons.length
+    ? mons.map(([m,a]) => `<div class="brow"><span class="blbl">${new Date(m+'-01').toLocaleString('en-IN',{month:'short',year:'2-digit'})}</span><div class="btrack"><div class="bfill" style="width:${Math.round(a/maxM*100)}%;background:#7F77DD"></div></div><span class="bamt">₹${a.toLocaleString('en-IN')}</span></div>`).join('')
+    : '<p class="empty">No entries yet</p>';
+}
+
+/* ---- TOGGLE FUEL FIELDS ---- */
+function toggleFuelFields() {
+  const isFuel = document.getElementById('e-cat').value === 'Fuel';
+  document.getElementById('fuel-fields').style.display = isFuel ? 'grid' : 'none';
+  if (!isFuel) { document.getElementById('e-qty').value = ''; document.getElementById('e-rate').value = ''; }
+}
+
+/* ---- CALC RATE ---- */
+function calcRate(returnVal) {
+  const amt = parseFloat(document.getElementById('e-amt').value);
+  const qty = parseFloat(document.getElementById('e-qty').value);
+  const cat = document.getElementById('e-cat').value;
+  const rateEl = document.getElementById('e-rate');
+  if (cat === 'Fuel' && amt > 0 && qty > 0) {
+    const r = (amt / qty).toFixed(2);
+    rateEl.value = '₹' + r + ' /L';
+    if (returnVal) return r;
+  } else {
+    rateEl.value = '';
+    if (returnVal) return '';
+  }
+}
+
+/* ---- ADD / UPDATE ENTRY ---- */
+function addEntry() {
+  const amt = parseFloat(document.getElementById('e-amt').value);
+  if (!amt || amt <= 0) { toast('Enter a valid amount'); return; }
+  const data = {
+    date: document.getElementById('e-date').value || new Date().toISOString().slice(0,10),
+    cat: document.getElementById('e-cat').value,
+    amt,
+    odo: document.getElementById('e-odo').value || '',
+    qty: document.getElementById('e-qty').value || '',
+    rate: calcRate(true),
+    vendor: document.getElementById('e-vendor').value || '',
+    notes: document.getElementById('e-notes').value || ''
+  };
+  if (editingId) {
+    const idx = entries.findIndex(x => x.id === editingId);
+    if (idx !== -1) entries[idx] = { id: editingId, ...data };
+    toast('Entry updated');
+  } else {
+    entries.unshift({ id: Date.now(), ...data });
+    toast('Entry saved');
+  }
+  save();
+  cancelEdit();
+  go('dash', 0);
+}
+
+/* ---- HISTORY ---- */
+function renderHist() {
+  const allCats = ['All', ...Object.keys(CATS)];
+  document.getElementById('filter-row').innerHTML = allCats.map(c =>
+    `<button class="fpill ${(histFilter===c||(c==='All'&&!histFilter))?'on':''}" onclick="setFilter('${c==='All'?'':c}')">${c}</button>`
+  ).join('');
+  const fl = histFilter ? entries.filter(e => e.cat===histFilter) : entries;
+  if (!fl.length) { document.getElementById('hist-list').innerHTML='<p class="empty">No entries yet</p>'; return; }
+  document.getElementById('hist-list').innerHTML = fl.map(e => `
+    <div class="hist-item">
+      <div class="hi-dot" style="background:${CATS[e.cat]||'#888'}"></div>
+      <div class="hi-main">
+        <div class="hi-cat">${e.cat}</div>
+        <div class="hi-sub">${[e.odo?e.odo+' km':'', e.qty?e.qty+' L':'', e.vendor||e.notes||''].filter(Boolean).join(' · ')||'—'}</div>
+      </div>
+      <div>
+        <div class="hi-amt">₹${e.amt.toLocaleString('en-IN')}</div>
+        <div class="hi-date">${e.date}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
+        <button class="delbtn" onclick="editEntry(${e.id})" aria-label="Edit" style="font-size:14px">✎</button>
+        <button class="delbtn" onclick="delEntry(${e.id})" aria-label="Delete">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function editEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('e-date').value = e.date;
+  document.getElementById('e-cat').value = e.cat;
+  toggleFuelFields();
+  document.getElementById('e-amt').value = e.amt;
+  document.getElementById('e-odo').value = e.odo || '';
+  document.getElementById('e-qty').value = e.qty || '';
+  document.getElementById('e-vendor').value = e.vendor || '';
+  document.getElementById('e-notes').value = e.notes || '';
+  calcRate();
+  document.getElementById('log-save-btn').textContent = 'Update entry';
+  document.getElementById('log-cancel-btn').style.display = 'block';
+  go('log', 1);
+}
+
+function cancelEdit() {
+  editingId = null;
+  ['e-amt','e-odo','e-qty','e-vendor','e-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('e-rate').value = '';
+  document.getElementById('e-cat').value = 'Fuel';
+  document.getElementById('e-date').value = new Date().toISOString().slice(0,10);
+  toggleFuelFields();
+  document.getElementById('log-save-btn').textContent = 'Save entry';
+  document.getElementById('log-cancel-btn').style.display = 'none';
+}
+
+function setFilter(f) { histFilter = f; renderHist(); }
+function delEntry(id) { if(!confirm('Delete this entry?')) return; entries=entries.filter(e=>e.id!==id); save(); renderHist(); toast('Deleted'); }
+
+/* ---- EXPORT / IMPORT ---- */
+function expCSV() {
+  if (!entries.length) { toast('No data to export'); return; }
+  const rows = [['Date','Category','Amount (INR)','Odometer (km)','Fuel qty (L)','Fuel rate (₹/L)','Vendor','Notes']];
+  entries.forEach(e => rows.push([e.date,e.cat,e.amt,e.odo,e.qty,e.rate,e.vendor,e.notes]));
+  const csv = rows.map(r => r.map(c=>'"'+(c||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+  dl('data:text/csv;charset=utf-8,'+encodeURIComponent(csv), 'carlog-'+new Date().toISOString().slice(0,10)+'.csv');
+  toast('CSV exported');
+}
+function expJSON() {
+  if (!entries.length) { toast('No data to export'); return; }
+  dl('data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({entries,exported:new Date().toISOString()},null,2)), 'carlog-backup-'+new Date().toISOString().slice(0,10)+'.json');
+  toast('Backup saved');
+}
+function dl(href, name) { const a=document.createElement('a'); a.href=href; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+function impJSON(ev) {
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.entries&&Array.isArray(d.entries)){entries=d.entries;save();renderDash();document.getElementById('ecnt').textContent=entries.length;toast(entries.length+' entries restored')}else toast('Invalid backup file')}catch{toast('Could not read file')}};
+  r.readAsText(f);
+}
+
+load();
+toggleFuelFields();
+renderDash();
+</script>
+</body>
+</html>
