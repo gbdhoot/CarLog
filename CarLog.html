@@ -205,6 +205,15 @@
 
   <!-- HISTORY -->
   <div class="pg" id="pg-hist">
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+      <span style="font-size:11px;color:var(--txt3);flex-shrink:0">Sort:</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button id="sb-dd" class="fpill on" onclick="setSort('date-desc')">Date ↓</button>
+        <button id="sb-da" class="fpill" onclick="setSort('date-asc')">Date ↑</button>
+        <button id="sb-ad" class="fpill" onclick="setSort('amt-desc')">Amount ↓</button>
+        <button id="sb-aa" class="fpill" onclick="setSort('amt-asc')">Amount ↑</button>
+      </div>
+    </div>
     <div class="filter-row" id="filter-row"></div>
     <div id="hist-list"></div>
   </div>
@@ -266,7 +275,7 @@
 
 <script>
 const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#888780',Service:'#639922',Tyre:'#D85A30',Fine:'#E24B4A',Other:'#888780'};
-let entries = [], curTab = 0, histFilter = '', editingId = null;
+let entries = [], curTab = 0, histFilter = '', editingId = null, histSort = 'date-desc';
 
 function load() {
   try { entries = JSON.parse(localStorage.getItem('cl_e') || '[]'); } catch(e) { entries = []; }
@@ -594,7 +603,21 @@ function renderHist() {
   document.getElementById('filter-row').innerHTML = allCats.map(c =>
     `<button class="fpill ${(histFilter===c||(c==='All'&&!histFilter))?'on':''}" onclick="setFilter('${c==='All'?'':c}')">${c}</button>`
   ).join('');
-  const fl = histFilter ? entries.filter(e => e.cat===histFilter) : entries;
+  // update sort button styles
+  ['date-desc','date-asc','amt-desc','amt-asc'].forEach(s => {
+    const map = {'date-desc':'sb-dd','date-asc':'sb-da','amt-desc':'sb-ad','amt-asc':'sb-aa'};
+    const el = document.getElementById(map[s]);
+    if (el) el.className = 'fpill' + (s===histSort?' on':'');
+  });
+  let fl = histFilter ? entries.filter(e => e.cat===histFilter) : [...entries];
+  // sort
+  fl.sort((a,b) => {
+    if (histSort==='date-desc') return b.date.localeCompare(a.date);
+    if (histSort==='date-asc')  return a.date.localeCompare(b.date);
+    if (histSort==='amt-desc')  return b.amt - a.amt;
+    if (histSort==='amt-asc')   return a.amt - b.amt;
+    return 0;
+  });
   if (!fl.length) { document.getElementById('hist-list').innerHTML='<p class="empty">No entries yet</p>'; return; }
   document.getElementById('hist-list').innerHTML = fl.map(e => `
     <div class="hist-item">
@@ -644,6 +667,7 @@ function cancelEdit() {
 }
 
 function setFilter(f) { histFilter = f; renderHist(); }
+function setSort(s) { histSort = s; renderHist(); }
 function delEntry(id) { if(!confirm('Delete this entry?')) return; entries=entries.filter(e=>e.id!==id); save(); renderHist(); toast('Deleted'); }
 
 /* ---- EXPORT / IMPORT ---- */
