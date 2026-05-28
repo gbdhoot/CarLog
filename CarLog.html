@@ -105,9 +105,9 @@
   .hi-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .hi-main { flex: 1; min-width: 0; }
   .hi-cat { font-size: 13px; font-weight: 600; color: var(--txt); }
-  .hi-sub { font-size: 11px; color: var(--txt3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hi-sub { font-size: 11px; color: var(--txt2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hi-amt { font-size: 15px; font-weight: 600; color: var(--txt); white-space: nowrap; }
-  .hi-date { font-size: 11px; color: var(--txt3); text-align: right; margin-top: 2px; }
+  .hi-date { font-size: 11px; color: var(--txt2); text-align: right; margin-top: 2px; font-weight: 500; }
   .delbtn { background: none; border: none; cursor: pointer; color: var(--txt3); padding: 6px; border-radius: 8px; font-size: 18px; line-height: 1; }
   .delbtn:active { background: rgba(226,75,74,0.12); color: var(--red); }
 
@@ -505,37 +505,46 @@ function renderDash() {
       fillIntervals.push({
         label: fills[i+1].date.slice(5), // MM-DD
         kmL: parseFloat((kmDriven/litres).toFixed(1)),
-        kmRs: parseFloat((kmDriven/spend).toFixed(3)),
+        kmRs: parseFloat((kmDriven/spend).toFixed(2)),
         rsKm: parseFloat((spend/kmDriven).toFixed(1))
       });
     }
   }
   const last6 = fillIntervals.slice(-6);
 
-  function miniBarChart(data, key, color, unit) {
-    if (!data.length) return '<p style="font-size:11px;color:var(--txt3);text-align:center;padding:8px 0">Need 2+ fuel fills with odometer</p>';
+  // Vertical column chart for trend — bars grow upward, date labels at bottom
+  function vertBarChart(data, key, color) {
+    if (!data.length) return '<p style="font-size:9px;color:var(--txt3);text-align:center;padding:12px 0 0">Need 2+ fills<br>with odometer</p>';
     const max = Math.max(...data.map(d => d[key]), 0.001);
-    return data.map(d => `
-      <div class="brow" style="margin-bottom:5px">
-        <span class="blbl" style="width:44px;font-size:10px">${d.label}</span>
-        <div class="btrack"><div class="bfill" style="width:${Math.round(d[key]/max*100)}%;background:${color}"></div></div>
-        <span class="bamt" style="width:52px;font-size:10px">${d[key]} ${unit}</span>
-      </div>`).join('');
+    const chartH = 54; // px height of bar area
+    return `<div style="display:flex;align-items:flex-end;justify-content:space-around;height:${chartH}px;gap:3px;margin-bottom:4px">` +
+      data.map(d => {
+        const pct = d[key] / max;
+        const barH = Math.max(Math.round(pct * chartH), 3);
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:${chartH}px">
+          <div style="font-size:8px;color:var(--txt2);margin-bottom:2px;white-space:nowrap">${d[key]}</div>
+          <div style="width:100%;height:${barH}px;background:${color};border-radius:3px 3px 0 0;min-height:3px"></div>
+        </div>`;
+      }).join('') +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-around;gap:3px">' +
+      data.map(d => `<div style="flex:1;text-align:center;font-size:8px;color:var(--txt2);overflow:hidden">${d.label}</div>`).join('') +
+      '</div>';
   }
 
   document.getElementById('trend-bars').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-      <div class="barchart" style="padding:10px">
-        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--green)">km/L trend</p>
-        ${miniBarChart(last6,'kmL','#1D9E75','kml')}
+      <div class="barchart" style="padding:10px 8px 8px">
+        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#1D9E75">km/L</p>
+        ${vertBarChart(last6,'kmL','#1D9E75')}
       </div>
-      <div class="barchart" style="padding:10px">
-        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--blue)">km/₹ trend</p>
-        ${miniBarChart(last6,'kmRs','#378ADD','')}
+      <div class="barchart" style="padding:10px 8px 8px">
+        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#378ADD">km/₹</p>
+        ${vertBarChart(last6,'kmRs','#378ADD')}
       </div>
-      <div class="barchart" style="padding:10px">
-        <p class="bct" style="font-size:11px;margin-bottom:8px;color:var(--amber)">₹/km trend</p>
-        ${miniBarChart(last6,'rsKm','#BA7517','₹')}
+      <div class="barchart" style="padding:10px 8px 8px">
+        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#BA7517">₹/km</p>
+        ${vertBarChart(last6,'rsKm','#BA7517')}
       </div>
     </div>`;
 
