@@ -61,7 +61,7 @@
   .sec { font-size: 13px; font-weight: 600; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 10px; }
 
   /* GAUGE CARDS */
-  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .gauges { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px; }
   .gcard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; }
   .gcard canvas { display: block; }
   .g-val { font-size: 16px; font-weight: 600; color: var(--txt); margin-top: 4px; text-align: center; letter-spacing: -0.5px; }
@@ -72,7 +72,7 @@
   /* fillstrip removed */
 
   /* STAT ROW */
-  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
   .scard { background: var(--bg); border-radius: var(--radius); border: 0.5px solid var(--bdr); padding: 12px; }
   .s-val { font-size: 20px; font-weight: 600; color: var(--txt); letter-spacing: -0.5px; }
   .s-lbl { font-size: 11px; color: var(--txt2); margin-top: 3px; }
@@ -136,6 +136,11 @@
   </div>
   <div style="font-size:22px;font-weight:600;color:var(--txt);margin-bottom:6px;letter-spacing:-0.4px">CarLog</div>
   <div id="gate-sub" style="font-size:14px;color:var(--txt2);margin-bottom:2rem;text-align:center">Enter your password to continue</div>
+  <div id="recovery-box" style="display:none;width:100%;max-width:280px;background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px;text-align:center">
+    <div style="font-size:11px;color:var(--txt2);margin-bottom:6px;font-weight:500">Your recovery key — save this now</div>
+    <div id="recovery-key" style="font-size:13px;font-weight:600;color:var(--txt);letter-spacing:1px;word-break:break-all"></div>
+    <div style="font-size:10px;color:var(--txt3);margin-top:6px">Screenshot or write it down. Shown once only.</div>
+  </div>
   <input type="password" id="pw-input" placeholder="Password" autocomplete="current-password"
     style="width:100%;max-width:280px;font-size:16px;padding:12px 16px;border-radius:12px;border:0.5px solid var(--bdr2);background:var(--bg);color:var(--txt);font-family:var(--font);outline:none;text-align:center;margin-bottom:10px"
     onkeydown="if(event.key==='Enter')checkPw()">
@@ -147,6 +152,12 @@
     Unlock
   </button>
   <div id="pw-err" style="font-size:13px;color:#E24B4A;margin-top:12px;min-height:18px;text-align:center"></div>
+  <button onclick="showForgot()" id="forgot-btn" style="margin-top:8px;background:none;border:none;font-size:12px;color:var(--txt3);font-family:var(--font);cursor:pointer">Forgot password?</button>
+  <div id="forgot-section" style="display:none;width:100%;max-width:280px;margin-top:10px">
+    <input type="text" id="recovery-input" placeholder="Enter recovery key" style="width:100%;font-size:14px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--bdr2);background:var(--bg);color:var(--txt);font-family:var(--font);outline:none;margin-bottom:8px">
+    <input type="password" id="new-pw-input" placeholder="New password (min 4 chars)" style="width:100%;font-size:14px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--bdr2);background:var(--bg);color:var(--txt);font-family:var(--font);outline:none;margin-bottom:8px">
+    <button onclick="resetWithKey()" style="width:100%;padding:11px;background:#BA7517;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:var(--font);cursor:pointer">Reset password</button>
+  </div>
 </div>
 
 <div class="app" id="main-app" style="display:none">
@@ -160,10 +171,11 @@
     <p class="sec" style="margin-top:4px">Performance</p>
     <div class="gauges" id="gauges"></div>
     <div id="trend-bars"></div>
+    <div id="days-between-fills"></div>
+    <div class="barchart"><p class="bct">Monthly trend</p><div id="monbars"></div></div>
+    <div class="barchart"><p class="bct" id="thismonth-title">This month by category</p><div id="thismonthbars"></div></div>
     <p class="sec">Summary</p>
     <div class="stats" id="stats"></div>
-    <div class="barchart"><p class="bct">Spend by category</p><div id="catbars"></div></div>
-    <div class="barchart"><p class="bct">Monthly trend</p><div id="monbars"></div></div>
   </div>
 
   <!-- LOG -->
@@ -180,7 +192,6 @@
             <option value="Accessories">Accessories</option>
             <option value="Parking">Parking</option>
             <option value="Service">Service center</option>
-            <option value="Tyre">Tyre / wheel</option>
             <option value="Fine">Traffic fine</option>
             <option value="Other">Other</option>
           </select>
@@ -188,7 +199,7 @@
       </div>
       <div class="frow">
         <div><div class="flabel">Amount (₹)</div><input type="number" id="e-amt" placeholder="0" inputmode="decimal" oninput="calcRate()"></div>
-        <div><div class="flabel">Odometer (km)</div><input type="number" id="e-odo" placeholder="e.g. 12450" inputmode="numeric"></div>
+        <div id="odo-field"><div class="flabel">Odometer (km)</div><input type="number" id="e-odo" placeholder="e.g. 12450" inputmode="numeric"></div>
       </div>
       <div class="frow" id="fuel-fields" style="display:none">
         <div><div class="flabel">Fuel qty (L)</div><input type="number" id="e-qty" placeholder="e.g. 40" step="0.1" inputmode="decimal" oninput="calcRate()"></div>
@@ -272,7 +283,7 @@
 <div class="toast" id="tst"></div>
 
 <script>
-const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#888780',Service:'#639922',Tyre:'#D85A30',Fine:'#E24B4A',Other:'#888780'};
+const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#888780',Service:'#639922',Fine:'#E24B4A',Other:'#888780'};
 let entries = [], curTab = 0, histFilter = '', editingId = null, histSort = 'date-desc';
 
 function load() {
@@ -464,7 +475,6 @@ function renderDash() {
   }
 
   const maxKmL  = niceMax(kmL)  || 20;
-  const maxKmRs = niceMax(kmRs) || 0.20;
   const maxCpm  = niceMax(cpmKm)|| 10;
 
   document.getElementById('gauges').innerHTML = `
@@ -473,12 +483,6 @@ function renderDash() {
       <div class="g-val">${kmL || '—'}</div>
       <div class="g-unit">km / L</div>
       <div class="g-lbl">Efficiency</div>
-    </div>
-    <div class="gcard">
-      <canvas id="g2"></canvas>
-      <div class="g-val">${kmRs || '—'}</div>
-      <div class="g-unit">km / ₹</div>
-      <div class="g-lbl">Value</div>
     </div>
     <div class="gcard">
       <canvas id="g3"></canvas>
@@ -490,7 +494,6 @@ function renderDash() {
 
   setTimeout(() => {
     drawGauge('g1', kmL/maxKmL,   '#1D9E75', maxKmL,  niceTicks(maxKmL,  4));
-    drawGauge('g2', kmRs/maxKmRs, '#378ADD', maxKmRs, niceTicks(maxKmRs, 4));
     drawGauge('g3', cpmKm/maxCpm, '#BA7517', maxCpm,  niceTicks(maxCpm,  4));
   }, 50);
 
@@ -533,52 +536,111 @@ function renderDash() {
   }
 
   document.getElementById('trend-bars').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div class="barchart" style="padding:10px 8px 8px">
-        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#1D9E75">km/L</p>
+        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#1D9E75">km/L per fill</p>
         ${vertBarChart(last6,'kmL','#1D9E75')}
       </div>
       <div class="barchart" style="padding:10px 8px 8px">
-        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#378ADD">km/₹</p>
-        ${vertBarChart(last6,'kmRs','#378ADD')}
-      </div>
-      <div class="barchart" style="padding:10px 8px 8px">
-        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#BA7517">₹/km</p>
+        <p class="bct" style="font-size:11px;margin-bottom:10px;color:#BA7517">₹/km per fill</p>
         ${vertBarChart(last6,'rsKm','#BA7517')}
       </div>
     </div>`;
 
-  // Stats — 3 cards, no "this month"
+  // ── Days between fills chart (last 6 gaps) ──────────────────────────────────
+  const fillGaps = [];
+  const fillsByDate = [...fuelE].filter(e=>e.date).sort((a,b)=>a.date.localeCompare(b.date));
+  for (let i = 1; i < fillsByDate.length; i++) {
+    const d1 = new Date(fillsByDate[i-1].date), d2 = new Date(fillsByDate[i].date);
+    const days = Math.round((d2-d1)/(1000*60*60*24));
+    if (days >= 0) fillGaps.push({ label: fillsByDate[i].date.slice(5) || '—', days });
+  }
+  const last6gaps = fillGaps.slice(-6);
+  const maxDays = Math.max(...last6gaps.map(g=>g.days), 1);
+  const gapChartH = 50;
+  document.getElementById('days-between-fills').innerHTML = last6gaps.length ? `
+    <div class="barchart" style="margin-bottom:14px;padding:12px 12px 8px">
+      <p class="bct" style="margin-bottom:10px">Days between fuel fills</p>
+      <div style="display:flex;align-items:flex-end;justify-content:space-around;height:${gapChartH}px;gap:4px;margin-bottom:4px">
+        ${last6gaps.map(g => {
+          const h = Math.max(Math.round(g.days/maxDays*gapChartH),3);
+          return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:${gapChartH}px">
+            <div style="font-size:8px;color:var(--txt2);margin-bottom:2px">${g.days}d</div>
+            <div style="width:100%;height:${h}px;background:#7F77DD;border-radius:3px 3px 0 0"></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-around;gap:4px">
+        ${last6gaps.map(g=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--txt2)">${g.label}</div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // ── Monthly trend — last 9 months, stacked fuel vs other ─────────────────
+  const bymon = {};
+  entries.forEach(e => {
+    const m = e.date.slice(0,7);
+    if (!bymon[m]) bymon[m] = { fuel: 0, other: 0 };
+    if (e.cat === 'Fuel') bymon[m].fuel += e.amt;
+    else bymon[m].other += e.amt;
+  });
+  const mons = Object.entries(bymon).sort((a,b)=>a[0].localeCompare(b[0])).slice(-9);
+  const maxM = Math.max(...mons.map(([,v])=>v.fuel+v.other), 1);
+  document.getElementById('monbars').innerHTML = mons.length ? mons.map(([m,v]) => {
+    const fuelW = Math.round(v.fuel/maxM*100), otherW = Math.round(v.other/maxM*100);
+    const label = new Date(m+'-01').toLocaleString('en-IN',{month:'short',year:'2-digit'});
+    return `<div class="brow">
+      <span class="blbl">${label}</span>
+      <div class="btrack" style="position:relative">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${fuelW+otherW}%;display:flex;border-radius:99px;overflow:hidden">
+          <div style="width:${fuelW ? Math.round(v.fuel/(v.fuel+v.other)*100) : 0}%;background:#1D9E75;height:100%"></div>
+          <div style="flex:1;background:#E8820C;height:100%"></div>
+        </div>
+      </div>
+      <span class="bamt">₹${(v.fuel+v.other).toLocaleString('en-IN')}</span>
+    </div>`;
+  }).join('') + `<div style="display:flex;gap:12px;margin-top:8px;padding-left:88px">
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#1D9E75"></div><span style="font-size:10px;color:var(--txt2)">Fuel</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#E8820C"></div><span style="font-size:10px;color:var(--txt2)">Other</span></div>
+  </div>` : '<p class="empty">No entries yet</p>';
+
+  // ── This month by category ────────────────────────────────────────────────
+  const thisM = new Date().toISOString().slice(0,7);
+  const thisMonthLabel = new Date(thisM+'-01').toLocaleString('en-IN',{month:'long',year:'numeric'});
+  document.getElementById('thismonth-title').textContent = thisMonthLabel + ' by category';
+  const thisMonthEntries = entries.filter(e => e.date.startsWith(thisM));
+  const bycatM = {};
+  thisMonthEntries.forEach(e => { bycatM[e.cat] = (bycatM[e.cat]||0) + e.amt; });
+  const catsM = Object.entries(bycatM).sort((a,b)=>b[1]-a[1]);
+  const maxCM = Math.max(...catsM.map(c=>c[1]), 1);
+  document.getElementById('thismonthbars').innerHTML = catsM.length
+    ? catsM.map(([c,a]) => `<div class="brow"><span class="blbl">${c}</span><div class="btrack"><div class="bfill" style="width:${Math.round(a/maxCM*100)}%;background:${CATS[c]||'#888'}"></div></div><span class="bamt">₹${a.toLocaleString('en-IN')}</span></div>`).join('')
+    : '<p class="empty" style="font-size:12px">No entries this month</p>';
+
+  // ── Summary 4 cards 2×2 ──────────────────────────────────────────────────
+  const fuelPct = total > 0 ? Math.round(totalFuelSpend/total*100) : 0;
+  const firstEntry = entries.length ? entries.reduce((a,b)=>a.date<b.date?a:b) : null;
+  const daysSinceFirst = firstEntry ? Math.max(1,Math.round((new Date()-new Date(firstEntry.date))/(1000*60*60*24))) : 0;
+  const costPerDay = daysSinceFirst > 0 && total > 0 ? Math.round(total/daysSinceFirst) : 0;
+  const monthCount = Object.keys(bymon).length || 1;
+  const avgMonthly = total > 0 ? Math.round(total/monthCount) : 0;
+
   document.getElementById('stats').innerHTML = `
     <div class="scard"><div class="s-val">₹${total.toLocaleString('en-IN')}</div><div class="s-lbl">Total spend</div></div>
-    <div class="scard"><div class="s-val">${totalKmAll > 0 ? totalKmAll.toLocaleString('en-IN')+' km' : '—'}</div><div class="s-lbl">Total km logged</div></div>
-    <div class="scard"><div class="s-val">${cnt}</div><div class="s-lbl">Log entries</div></div>
+    <div class="scard"><div class="s-val">${fuelPct}%</div><div class="s-lbl">Fuel of total spend</div></div>
+    <div class="scard"><div class="s-val">₹${costPerDay.toLocaleString('en-IN')}</div><div class="s-lbl">Cost per day</div></div>
+    <div class="scard"><div class="s-val">₹${avgMonthly.toLocaleString('en-IN')}</div><div class="s-lbl">Avg monthly spend</div></div>
   `;
-
-  // Category bars
-  const bycat = {};
-  entries.forEach(e => { bycat[e.cat] = (bycat[e.cat]||0) + e.amt; });
-  const cats = Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
-  const maxC = Math.max(...cats.map(c=>c[1]), 1);
-  document.getElementById('catbars').innerHTML = cats.length
-    ? cats.map(([c,a]) => `<div class="brow"><span class="blbl">${c}</span><div class="btrack"><div class="bfill" style="width:${Math.round(a/maxC*100)}%;background:${CATS[c]||'#888'}"></div></div><span class="bamt">₹${a.toLocaleString('en-IN')}</span></div>`).join('')
-    : '<p class="empty">No entries yet</p>';
-
-  // Monthly bars
-  const bymon = {};
-  entries.forEach(e => { const m=e.date.slice(0,7); bymon[m]=(bymon[m]||0)+e.amt; });
-  const mons = Object.entries(bymon).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6);
-  const maxM = Math.max(...mons.map(m=>m[1]), 1);
-  document.getElementById('monbars').innerHTML = mons.length
-    ? mons.map(([m,a]) => `<div class="brow"><span class="blbl">${new Date(m+'-01').toLocaleString('en-IN',{month:'short',year:'2-digit'})}</span><div class="btrack"><div class="bfill" style="width:${Math.round(a/maxM*100)}%;background:#7F77DD"></div></div><span class="bamt">₹${a.toLocaleString('en-IN')}</span></div>`).join('')
-    : '<p class="empty">No entries yet</p>';
 }
 
 /* ---- TOGGLE FUEL FIELDS ---- */
 function toggleFuelFields() {
-  const isFuel = document.getElementById('e-cat').value === 'Fuel';
+  const cat = document.getElementById('e-cat').value;
+  const isFuel = cat === 'Fuel';
+  const showOdo = cat === 'Fuel' || cat === 'Service';
   document.getElementById('fuel-fields').style.display = isFuel ? 'grid' : 'none';
+  document.getElementById('odo-field').style.display = showOdo ? 'block' : 'none';
   if (!isFuel) { document.getElementById('e-qty').value = ''; document.getElementById('e-rate').value = ''; }
+  if (!showOdo) { document.getElementById('e-odo').value = ''; }
 }
 
 /* ---- CALC RATE ---- */
@@ -743,19 +805,53 @@ function unlockApp() {
   load(); toggleFuelFields(); renderDash();
 }
 
+function genRecoveryKey() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>chars[b%chars.length]).join('').match(/.{4}/g).join('-');
+}
+
+function showForgot() {
+  document.getElementById('forgot-section').style.display = 'block';
+  document.getElementById('forgot-btn').style.display = 'none';
+}
+
+async function resetWithKey() {
+  const key = document.getElementById('recovery-input').value.trim().toUpperCase().replace(/-/g,'');
+  const newPw = document.getElementById('new-pw-input').value.trim();
+  const storedKeyHash = localStorage.getItem('cl_rk');
+  if (!storedKeyHash) { showGateErr('No recovery key found'); return; }
+  const keyHash = await hashStr(key);
+  if (keyHash !== storedKeyHash) { showGateErr('Recovery key incorrect'); return; }
+  if (newPw.length < 4) { showGateErr('Minimum 4 characters'); return; }
+  localStorage.setItem('cl_pw', await hashStr(newPw));
+  document.getElementById('forgot-section').style.display = 'none';
+  document.getElementById('forgot-btn').style.display = 'block';
+  document.getElementById('recovery-input').value = '';
+  document.getElementById('new-pw-input').value = '';
+  showGateErr('Password reset — please log in');
+}
+
 async function checkPw() {
   const stored = localStorage.getItem('cl_pw');
   const val = document.getElementById('pw-input').value.trim();
   if (!val) { showGateErr('Enter a password'); return; }
 
   if (!stored) {
-    // First launch — set password
+    // First launch — set password + generate recovery key
     const conf = document.getElementById('pw-confirm').value.trim();
     if (!conf) { showGateErr('Please confirm your password'); return; }
     if (val !== conf) { showGateErr('Passwords do not match'); document.getElementById('pw-confirm').value=''; return; }
     if (val.length < 4) { showGateErr('Minimum 4 characters'); return; }
+    const rk = genRecoveryKey();
     localStorage.setItem('cl_pw', await hashStr(val));
-    unlockApp();
+    localStorage.setItem('cl_rk', await hashStr(rk.replace(/-/g,'')));
+    // Show recovery key — user must note it before proceeding
+    document.getElementById('recovery-key').textContent = rk;
+    document.getElementById('recovery-box').style.display = 'block';
+    document.getElementById('gate-btn').textContent = 'I have saved my key — Continue';
+    document.getElementById('gate-btn').onclick = unlockApp;
+    document.getElementById('pw-confirm').style.display = 'none';
+    document.getElementById('pw-input').style.display = 'none';
   } else {
     const h = await hashStr(val);
     if (h === stored) {
