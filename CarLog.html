@@ -283,7 +283,7 @@
 <div class="toast" id="tst"></div>
 
 <script>
-const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#888780',Service:'#639922',Fine:'#E24B4A',Other:'#888780'};
+const CATS = {Fuel:'#378ADD',Maintenance:'#1D9E75',Toll:'#BA7517',Insurance:'#7F77DD',Accessories:'#D4537E',Parking:'#E8820C',Service:'#639922',Fine:'#E24B4A',Other:'#E8820C'};
 let entries = [], curTab = 0, histFilter = '', editingId = null, histSort = 'date-desc';
 
 function load() {
@@ -525,13 +525,13 @@ function renderDash() {
         const pct = d[key] / max;
         const barH = Math.max(Math.round(pct * chartH), 3);
         return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:${chartH}px">
-          <div style="font-size:8px;color:var(--txt2);margin-bottom:2px;white-space:nowrap">${d[key]}</div>
+          <div style="font-size:10px;color:var(--txt2);margin-bottom:2px;white-space:nowrap">${d[key]}</div>
           <div style="width:100%;height:${barH}px;background:${color};border-radius:3px 3px 0 0;min-height:3px"></div>
         </div>`;
       }).join('') +
       '</div>' +
       '<div style="display:flex;justify-content:space-around;gap:3px">' +
-      data.map(d => `<div style="flex:1;text-align:center;font-size:8px;color:var(--txt2);overflow:hidden">${d.label}</div>`).join('') +
+      data.map(d => `<div style="flex:1;text-align:center;font-size:10px;color:var(--txt2);overflow:hidden">${d.label}</div>`).join('') +
       '</div>';
   }
 
@@ -555,25 +555,29 @@ function renderDash() {
     const days = Math.round((d2-d1)/(1000*60*60*24));
     if (days >= 0) fillGaps.push({ label: fillsByDate[i].date.slice(5) || '—', days });
   }
-  const last6gaps = fillGaps.slice(-6);
-  const maxDays = Math.max(...last6gaps.map(g=>g.days), 1);
-  const gapChartH = 50;
-  document.getElementById('days-between-fills').innerHTML = last6gaps.length ? `
+  const last9gaps = fillGaps.slice(-9);
+  const maxDays = Math.max(...last9gaps.map(g=>g.days), 1);
+  const gapChartH = 54;
+  const SLOTS = 9;
+  const emptySlots = SLOTS - last9gaps.length;
+  const allSlots = [...Array(emptySlots).fill(null), ...last9gaps];
+  document.getElementById('days-between-fills').innerHTML = `
     <div class="barchart" style="margin-bottom:14px;padding:12px 12px 8px">
       <p class="bct" style="margin-bottom:10px">Days between fuel fills</p>
-      <div style="display:flex;align-items:flex-end;justify-content:space-around;height:${gapChartH}px;gap:4px;margin-bottom:4px">
-        ${last6gaps.map(g => {
+      <div style="display:flex;align-items:flex-end;height:${gapChartH}px;gap:3px;margin-bottom:4px">
+        ${allSlots.map(g => {
+          if (!g) return `<div style="flex:1;height:${gapChartH}px"></div>`;
           const h = Math.max(Math.round(g.days/maxDays*gapChartH),3);
           return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;height:${gapChartH}px">
-            <div style="font-size:8px;color:var(--txt2);margin-bottom:2px">${g.days}d</div>
+            <div style="font-size:10px;color:var(--txt2);margin-bottom:2px">${g.days}d</div>
             <div style="width:100%;height:${h}px;background:#7F77DD;border-radius:3px 3px 0 0"></div>
           </div>`;
         }).join('')}
       </div>
-      <div style="display:flex;justify-content:space-around;gap:4px">
-        ${last6gaps.map(g=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--txt2)">${g.label}</div>`).join('')}
+      <div style="display:flex;gap:3px">
+        ${allSlots.map(g => `<div style="flex:1;text-align:center;font-size:10px;color:var(--txt2)">${g ? g.label : ''}</div>`).join('')}
       </div>
-    </div>` : '';
+    </div>`;
 
   // ── Monthly trend — last 9 months, stacked fuel vs other ─────────────────
   const bymon = {};
@@ -726,7 +730,7 @@ function renderHist() {
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <button class="delbtn" onclick="editEntry(${e.id})" aria-label="Edit" style="font-size:14px">✎</button>
-        <button class="delbtn" onclick="delEntry(${e.id})" aria-label="Delete">×</button>
+        <button class="delbtn" data-delid="${e.id}" onclick="delEntry(${e.id})" aria-label="Delete">×</button>
       </div>
     </div>`).join('');
 }
@@ -762,7 +766,29 @@ function cancelEdit() {
 
 function setFilter(f) { histFilter = f; renderHist(); }
 function setSort(s) { histSort = s; renderHist(); }
-function delEntry(id) { if(!confirm('Delete this entry?')) return; entries=entries.filter(e=>e.id!==id); save(); renderHist(); toast('Deleted'); }
+function delEntry(id) {
+  // confirm() is blocked in iOS PWA — use inline two-tap confirmation
+  const btn = document.querySelector(`button[data-delid="${id}"]`);
+  if (!btn) return;
+  if (btn.dataset.confirming === '1') {
+    entries = entries.filter(e => e.id !== id);
+    save(); renderHist(); toast('Deleted');
+  } else {
+    btn.dataset.confirming = '1';
+    btn.textContent = '✓';
+    btn.style.color = '#E24B4A';
+    btn.style.background = 'rgba(226,75,74,0.12)';
+    btn.style.borderRadius = '6px';
+    setTimeout(() => {
+      if (btn.dataset.confirming === '1') {
+        btn.dataset.confirming = '0';
+        btn.textContent = '×';
+        btn.style.color = '';
+        btn.style.background = '';
+      }
+    }, 2500);
+  }
+}
 
 /* ---- EXPORT / IMPORT ---- */
 function expCSV() {
